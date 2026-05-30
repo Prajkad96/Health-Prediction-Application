@@ -27,7 +27,7 @@ HealthPredict AI is a full-stack web application that allows users to manage pat
 
 1. **Clone the repository**:
    ```bash
-   git clone <your-repository-url>
+   git clone github.com/Prajkad96/Health-Prediction-Application
    cd health-prediction-app
    ```
 
@@ -60,6 +60,4 @@ HealthPredict AI is a full-stack web application that allows users to manage pat
 
 The `.env` file is included in `.gitignore` to prevent sensitive API keys and passwords from being uploaded to GitHub. Always use `.env.example` as a template for new environments.
 
-## 📄 License
 
-This project is licensed under the MIT License.
