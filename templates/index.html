@@ -1,0 +1,151 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row mb-4 animate-fade-in">
+    <div class="col-md-8">
+        <h2 class="fw-bold mb-1">Patient Management</h2>
+        <p class="text-muted">Monitor and analyze patient health records with AI insights.</p>
+    </div>
+    <div class="col-md-4 text-md-end d-flex align-items-center justify-content-md-end">
+        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#patientModal" onclick="resetForm()">
+            <i class="fas fa-plus-circle me-2"></i>New Patient Record
+        </button>
+    </div>
+</div>
+
+<div class="card animate-fade-in" style="animation-delay: 0.1s;">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Patient Information</th>
+                        <th>Vitals</th>
+                        <th>AI Health Prediction</th>
+                        <th class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="patientTableBody">
+                    <!-- Data will be loaded here via JS -->
+                    <tr>
+                        <td colspan="4" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Retrieving patient records...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Patient Modal -->
+<div class="modal fade" id="patientModal" tabindex="-1" aria-labelledby="patientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 bg-light rounded-top-4">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary text-white rounded-3 p-2 me-3">
+                        <i class="fas fa-user-medical"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold" id="patientModalLabel">Patient Details</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="patientForm">
+                    <input type="hidden" id="patientId">
+                    <div class="row g-4">
+                        <div class="col-md-12">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Basic Information</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="fullName" class="form-label fw-semibold">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="far fa-user text-muted"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" id="fullName" placeholder="e.g. John Doe" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="dob" class="form-label fw-semibold">Date of Birth</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="far fa-calendar text-muted"></i></span>
+                                <input type="date" class="form-control border-start-0 ps-0" id="dob" required>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="email" class="form-label fw-semibold">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="far fa-envelope text-muted"></i></span>
+                                <input type="email" class="form-control border-start-0 ps-0" id="email" placeholder="name@example.com" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12 mt-4">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-3">Blood Test Results</h6>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="glucose" class="form-label fw-semibold">Glucose</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="glucose" placeholder="mg/dL" required>
+                                <span class="input-group-text small">mg/dL</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="haemoglobin" class="form-label fw-semibold">Haemoglobin</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="haemoglobin" placeholder="g/dL" required>
+                                <span class="input-group-text small">g/dL</span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="cholesterol" class="form-label fw-semibold">Cholesterol</label>
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="cholesterol" placeholder="mg/dL" required>
+                                <span class="input-group-text small">mg/dL</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <div id="aiLoading" class="mt-4 d-none p-3 rounded-3 bg-light border">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-grow text-primary spinner-grow-sm me-3" role="status"></div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0 fw-bold text-primary">AI is analyzing health metrics...</p>
+                            <p class="mb-0 small text-muted">This may take a few seconds.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 shadow-sm" id="saveBtn" onclick="savePatient()">
+                    <i class="fas fa-check-circle me-2"></i>Save Record
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <div class="text-danger mb-3">
+                    <i class="fas fa-exclamation-circle fa-4x"></i>
+                </div>
+                <h5 class="fw-bold">Are you sure?</h5>
+                <p class="text-muted mb-4">This action will permanently delete the patient record.</p>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete Record</button>
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
