@@ -1,5 +1,6 @@
 import os
 import datetime
+import re
 import mysql.connector
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
@@ -15,7 +16,7 @@ CORS(app) # Enable Cross-Origin Resource Sharing for frontend-backend communicat
 # --- AI Configuration ---
 # Initialize the Google Gemini AI client using the API key from environment variables
 client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-model_id = 'gemini-2.5-flash' # Using the lightweight and fast Flash model
+model_id = 'gemini-flash-latest' # Using the lightweight and fast Flash model
 
 # --- Database Helper ---
 def get_db_connection():
@@ -89,6 +90,35 @@ def create_patient():
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({"error": f"Field '{field}' is required"}), 400
+        
+        # Validate email format
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, data['email']):
+            return jsonify({"error": "Please enter a valid email address (e.g., name@example.com)"}), 400
+        
+        # Validate date of birth
+        try:
+            dob_parts = list(map(int, data['dob'].split('-')))  # YYYY-MM-DD
+            if len(dob_parts) != 3:
+                raise ValueError
+            # Check if date is valid by creating a datetime object
+            dob = datetime.date(dob_parts[0], dob_parts[1], dob_parts[2])
+        except ValueError:
+            return jsonify({"error": "Invalid date of birth. Please check the day, month, and year."}), 400
+        
+        # Check if DOB is in the future
+        if dob > datetime.date.today():
+            return jsonify({"error": "Date of birth cannot be in the future"}), 400
+        
+        # Check for duplicate email
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM patients WHERE email = %s", (data['email'],))
+        existing_patient = cursor.fetchone()
+        if existing_patient:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "A patient with this email already exists"}), 400
 
         # AI Prediction: Generate remarks before saving to DB
         remarks = generate_health_remarks(
@@ -96,8 +126,6 @@ def create_patient():
             data['glucose'], data['haemoglobin'], data['cholesterol']
         )
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
         query = """
             INSERT INTO patients (full_name, dob, email, glucose, haemoglobin, cholesterol, remarks)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -137,14 +165,47 @@ def update_patient(id):
     """UPDATE: Modifies an existing patient record and regenerates AI remarks."""
     data = request.json
     try:
+        # Backend Validation: Ensure all required fields are present
+        required_fields = ['full_name', 'dob', 'email', 'glucose', 'haemoglobin', 'cholesterol']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({"error": f"Field '{field}' is required"}), 400
+        
+        # Validate email format
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, data['email']):
+            return jsonify({"error": "Please enter a valid email address (e.g., name@example.com)"}), 400
+        
+        # Validate date of birth
+        try:
+            dob_parts = list(map(int, data['dob'].split('-')))  # YYYY-MM-DD
+            if len(dob_parts) != 3:
+                raise ValueError
+            # Check if date is valid by creating a datetime object
+            dob = datetime.date(dob_parts[0], dob_parts[1], dob_parts[2])
+        except ValueError:
+            return jsonify({"error": "Invalid date of birth. Please check the day, month, and year."}), 400
+        
+        # Check if DOB is in the future
+        if dob > datetime.date.today():
+            return jsonify({"error": "Date of birth cannot be in the future"}), 400
+        
+        # Check for duplicate email (but allow the same email for the current patient)
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id FROM patients WHERE email = %s AND id != %s", (data['email'], id))
+        existing_patient = cursor.fetchone()
+        if existing_patient:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "A patient with this email already exists"}), 400
+
         # Regenerate remarks based on updated health data
         remarks = generate_health_remarks(
             data['full_name'], data['dob'], 
             data['glucose'], data['haemoglobin'], data['cholesterol']
         )
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
         query = """
             UPDATE patients 
             SET full_name=%s, dob=%s, email=%s, glucose=%s, haemoglobin=%s, cholesterol=%s, remarks=%s
