@@ -53,26 +53,26 @@ function fetchPatients() {
                     <tr class="animate-fade-in" style="animation-delay: ${0.1 + (index * 0.05)}s">
                         <td class="ps-4">
                             <div class="d-flex align-items-center">
-                                <div class="bg-light text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
-                                    <span class="fw-bold">${patient.full_name.charAt(0).toUpperCase()}</span>
+                                <div class="patient-avatar me-3">
+                                    ${patient.full_name.charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                    <div class="fw-bold text-dark">${patient.full_name}</div>
-                                    <div class="small text-muted">${patient.email}</div>
-                                    <div class="small text-muted mt-1"><i class="far fa-calendar-alt me-1"></i>${formatDate(patient.dob)}</div>
+                                    <div class="fw-bold text-dark" style="font-size: 1.05rem;">${patient.full_name}</div>
+                                    <div class="small text-muted"><i class="far fa-envelope me-1 text-xs"></i>${patient.email}</div>
+                                    <div class="small text-muted mt-1"><i class="far fa-calendar-alt me-1 text-xs"></i>${formatDate(patient.dob)}</div>
                                 </div>
                             </div>
                         </td>
                         <td>
                             <div class="d-flex flex-column gap-1">
-                                <span class="badge bg-light text-dark border fw-normal text-start">
-                                    <span class="text-muted small me-1">Glucose:</span> <strong>${patient.glucose}</strong>
+                                <span class="badge-health badge-bg-light">
+                                    <i class="fas fa-droplet me-2 text-blue-500"></i>Glucose: <strong>${patient.glucose}</strong> mg/dL
                                 </span>
-                                <span class="badge bg-light text-dark border fw-normal text-start">
-                                    <span class="text-muted small me-1">Haemoglobin:</span> <strong>${patient.haemoglobin}</strong>
+                                <span class="badge-health badge-bg-light">
+                                    <i class="fas fa-tint me-2 text-red-500"></i>Haemoglobin: <strong>${patient.haemoglobin}</strong> g/dL
                                 </span>
-                                <span class="badge bg-light text-dark border fw-normal text-start">
-                                    <span class="text-muted small me-1">Cholesterol:</span> <strong>${patient.cholesterol}</strong>
+                                <span class="badge-health badge-bg-light">
+                                    <i class="fas fa-heartbeat me-2 text-purple-500"></i>Cholesterol: <strong>${patient.cholesterol}</strong> mg/dL
                                 </span>
                             </div>
                         </td>
@@ -183,17 +183,31 @@ function validateForm(data) {
         return false;
     }
 
+    // Check if DOB is a valid date
+    const dobDate = new Date(data.dob);
+    const dateParts = data.dob.split('-'); // YYYY-MM-DD
+    if (
+        isNaN(dobDate.getTime()) || 
+        dobDate.getFullYear() != dateParts[0] || 
+        dobDate.getMonth() + 1 != dateParts[1] || // JS months are 0-11
+        dobDate.getDate() != dateParts[2]
+    ) {
+        showToast('Invalid date of birth. Please check the day, month, and year.', 'warning');
+        return false;
+    }
+
     // Check if DOB is in the future
-    const today = new Date().toISOString().split('T')[0];
-    if (data.dob > today) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    if (dobDate > today) {
         showToast('Date of birth cannot be in the future.', 'warning');
         return false;
     }
 
-    // Email format validation using Regex
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Email format validation: must contain @ and a valid TLD (like .com)
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!emailRegex.test(data.email)) {
-        showToast('Please enter a valid email address.', 'warning');
+        showToast('Please enter a valid email address (e.g., name@example.com).', 'warning');
         return false;
     }
 
